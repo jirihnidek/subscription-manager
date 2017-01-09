@@ -657,6 +657,10 @@ class RefreshCommand(CliCommand):
             # get current consumer identity
             identity = inj.require(inj.IDENTITY)
 
+            # remove content_access cache, ensuring we get it fresh
+            content_access = inj.require(inj.CONTENT_ACCESS_CACHE)
+            content_access.remove()
+
             # Force a regen of the entitlement certs for this consumer
             # TODO: Eventually migrate this to capability recognition. Currently it will silently return
             #   false if an error occurs
@@ -1200,11 +1204,11 @@ class RegisterCommand(UserPassCommand):
             except connection.RestlibException, re:
                 print_error(re.msg)
 
-        if (self.options.consumerid or self.options.activation_keys or self.autoattach):
-            log.info("System registered, updating entitlements if needed")
-            # update certs, repos, and caches.
-            # FIXME: aside from the overhead, should this be cert_action_client.update?
-            self.entcertlib.update()
+        # unconditionally update entitlement certs, since content access certificate may be present
+        log.info("System registered, updating entitlements if needed")
+        # update certs, repos, and caches.
+        # FIXME: aside from the overhead, should this be cert_action_client.update?
+        self.entcertlib.update()
 
         subscribed = 0
         if (self.options.activation_keys or self.autoattach):
